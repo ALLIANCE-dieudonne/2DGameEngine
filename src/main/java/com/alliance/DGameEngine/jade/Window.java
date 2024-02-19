@@ -1,5 +1,6 @@
 package com.alliance.DGameEngine.jade;
 
+import com.alliance.DGameEngine.util.Time;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -20,10 +21,12 @@ public class Window {
   private final int height;
   private final String title;
   private long glfwWindow;
-  private float r, g, b, a;
+  public float r, g, b, a;
   private boolean fadeToBlack = false;
 
   private static Window window = null;
+
+  private static Scene currentScene;
 
   private Window() {
     this.width = 1920;
@@ -33,6 +36,18 @@ public class Window {
     g = 1;
     b = 1;
     a = 1;
+  }
+
+  //changing scenes
+  public static void changeScene(int newScene) {
+    switch (newScene) {
+      case 0 -> currentScene = new LevelEditorScene();
+      //currentScene.init();
+      case 1 -> currentScene = new LevelScene();
+      default -> {
+        assert false : "Invalid scene";
+      }
+    }
   }
 
   public static Window get() {
@@ -117,39 +132,38 @@ public class Window {
     // creates the GLCapabilities instance and makes the OpenGL
     // bindings available for use.
     GL.createCapabilities();
+
+    Window.changeScene(0);
   }
 
   private void loop() {
-    // Poll for window events. The key callback above will only be
-    // invoked during this call.
-    glfwPollEvents();
+    float beginTime = Time.getTime();
+    float endTime;
+    float dt = -1.0f;
+
 
     // Run the rendering loop until the user has attempted to close
     // the window or has pressed the ESCAPE key.
     while (!glfwWindowShouldClose(glfwWindow)) {
+      // Poll for window events. The key callback above will only be
+      // invoked during this call.
+      glfwPollEvents();
+      glClearColor(r,g,b,a);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
-      if (fadeToBlack) {
-        r = Math.max(r - 0.01f, 0);
-        g = Math.max(g - 0.01f, 0);
-        b = Math.max(b - 0.01f, 0);
-      }
-
-      // Set the clear color inside the loop to reflect changes
-      glClearColor(r, g, b, a);
-
-      if (KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
-        fadeToBlack = true;
-      }
-
+      if (dt >= 0)
+        currentScene.update(dt);
       // Swap the color buffers
       glfwSwapBuffers(glfwWindow);
 
       // Poll for events and wait for a short duration
       glfwWaitEventsTimeout(0.01);
+
+      endTime = Time.getTime();
+      dt = endTime - beginTime;
+      beginTime = endTime;
     }
   }
-
 
 
 }
